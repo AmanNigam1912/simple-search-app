@@ -2,15 +2,7 @@ import React, { useEffect, useRef, useState } from "react"
 import { fetchItems, createItem } from "./api"
 import type { Item } from "./types"
 import ItemCard from "./components/ItemCard"
-
-function useDebouncedValue<T>(value: T, delay = 400) {
-    const [debounced, setDebounced] = useState(value)
-    useEffect(() => {
-        const id = setTimeout(() => setDebounced(value), delay)
-        return () => clearTimeout(id)
-    }, [value, delay])
-    return debounced
-}
+import { useDebouncedValue } from "./hooks/useDebouncedValue"
 
 export default function App() {
     const [items, setItems] = useState<Item[]>([])
@@ -32,21 +24,26 @@ export default function App() {
     useEffect(() => {
         let cancelled = false
         async function load() {
-            console.log("Loading items...", loading)
-            // if (!hasMore || loading) return
-            if (loading) return
+            // if (loading || error) {
+            //     console.log("Already loading or error state, skipping fetch")
+            //     return
+            // }
             setLoading(true)
             setError(null)
             try {
                 const res = await fetchItems({ q: debouncedQ, offset })
-                console.log("res", res)
-                if (cancelled) return
+                if (cancelled) {
+                    return
+                }
+                console.log("Fetched items:", res.items)
                 setItems((prev) => [...prev, ...res.items])
                 setHasMore(res.hasMore)
             } catch (e: any) {
                 setError(e?.message ?? "Failed to load data")
             } finally {
-                if (!cancelled) setLoading(false)
+                if (!cancelled) {
+                    setLoading(false)
+                }
             }
         }
         load()
@@ -58,13 +55,18 @@ export default function App() {
     // Infinite scroll: observe sentinel
     useEffect(() => {
         const el = sentinelRef.current
-        if (!el) return
-        const io = new IntersectionObserver((entries) => {
-            const first = entries[0]
-            if (first.isIntersecting && hasMore && !loading) {
-                setOffset((prev) => prev + 20)
-            }
-        })
+        if (!el) {
+            return
+        }
+        const io = new IntersectionObserver(
+            (entries) => {
+                const first = entries[0]
+                if (first.isIntersecting && hasMore && !loading) {
+                    setOffset((prev) => prev + 20)
+                }
+            },
+            { root: null, rootMargin: "200px", threshold: 0 }
+        )
         io.observe(el)
         return () => {
             io.disconnect()
@@ -79,6 +81,8 @@ export default function App() {
                 description: "Created from the UI for demo purposes.",
                 price: Number((Math.random() * 90 + 10).toFixed(2)),
                 image: "https://picsum.photos/seed/ui-created/400/250",
+                imageAlt: "Sample UI-created image",
+                imageTags: ["demo", "ui-created"],
             }
             const created = await createItem(body)
             // put the new item at the top & reset paging to reflect it
@@ -115,8 +119,8 @@ export default function App() {
             <div ref={sentinelRef} style={{ height: 1 }} />
 
             <footer className="footer">
-                {loading && <span>Loading…</span>}
-                {!hasMore && <span>End of results.</span>}
+                {loading && <div>Loading…</div>}
+                {!hasMore && <div>End of results.</div>}
             </footer>
         </div>
     )
