@@ -35,44 +35,44 @@ app.get("/items", (req, res) => {
     })
 })
 
-// Basic create endpoint (API for setting up items)
-app.post("/items", (req, res) => {
-    const { name, description, price, image, imageAlt, imageTags } =
-        req.body || {}
-    if (
-        typeof name !== "string" ||
-        typeof description !== "string" ||
-        typeof image !== "string" ||
-        typeof price !== "number"
-    ) {
-        return res.status(400).json({
-            error: "Invalid body. Expect {name, description, image, price}.",
-        })
-    }
-    const imageAltValid =
-        typeof imageAlt === "undefined" || typeof imageAlt === "string"
-    const imageTagsValid =
-        typeof imageTags === "undefined" ||
-        (Array.isArray(imageTags) &&
-            imageTags.every((t) => typeof t === "string"))
-    if (!imageAltValid || !imageTagsValid) {
-        return res
-            .status(400)
-            .json({
-                error: "imageAlt must be string (optional), imageTags must be string[] (optional).",
-            })
-    }
+// // Basic create endpoint (API for setting up items)
+// app.post("/items", (req, res) => {
+//     const { name, description, price, image, imageAlt, imageTags } =
+//         req.body || {}
+//     if (
+//         typeof name !== "string" ||
+//         typeof description !== "string" ||
+//         typeof image !== "string" ||
+//         typeof price !== "number"
+//     ) {
+//         return res.status(400).json({
+//             error: "Invalid body. Expect {name, description, image, price}.",
+//         })
+//     }
+//     const imageAltValid =
+//         typeof imageAlt === "undefined" || typeof imageAlt === "string"
+//     const imageTagsValid =
+//         typeof imageTags === "undefined" ||
+//         (Array.isArray(imageTags) &&
+//             imageTags.every((t) => typeof t === "string"))
+//     if (!imageAltValid || !imageTagsValid) {
+//         return res
+//             .status(400)
+//             .json({
+//                 error: "imageAlt must be string (optional), imageTags must be string[] (optional).",
+//             })
+//     }
 
-    const created = addItem({
-        name,
-        description,
-        image,
-        price,
-        imageAlt,
-        imageTags,
-    })
-    res.status(201).json(created)
-})
+//     const created = addItem({
+//         name,
+//         description,
+//         image,
+//         price,
+//         imageAlt,
+//         imageTags,
+//     })
+//     res.status(201).json(created)
+// })
 
 app.listen(PORT, () => {
     console.log(`API listening on http://localhost:${PORT}`)

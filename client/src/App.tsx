@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { fetchItems, createItem } from "./api"
 import type { Item } from "./types"
 import ItemCard from "./components/ItemCard"
@@ -7,47 +7,48 @@ import { useDebouncedValue } from "./hooks/useDebouncedValue"
 export default function App() {
     const [items, setItems] = useState<Item[]>([])
     const [q, setQ] = useState("")
-    const debouncedQ = useDebouncedValue(q, 400)
+    const debouncedQ = useDebouncedValue(q, 500)
     const [offset, setOffset] = useState(0)
     const [hasMore, setHasMore] = useState(true)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const sentinelRef = useRef<HTMLDivElement | null>(null)
+    // const lastQSRef = useRef<{ q: string }>({ q: "" })
 
-    // Reset list when search changes
+    // console.log("offset", offset)
+
     useEffect(() => {
         setItems([])
         setOffset(0)
         setHasMore(true)
     }, [debouncedQ])
 
-    // Load a page
     useEffect(() => {
+        // const changed = lastQSRef.current.q !== debouncedQ
+        // // prevent stale fetch from happening
+        // if (changed) {
+        //     lastQSRef.current = { q: debouncedQ }
+        //     setItems([])
+        //     setOffset(0)
+        //     setHasMore(true)
+        //     return
+        // }
+
         let cancelled = false
         async function load() {
-            console.log("inisde use effect load")
             if (loading || !hasMore) {
-                console.log("Already loading or error state, skipping fetch")
                 return
             }
             setLoading(true)
             setError(null)
-            console.log("inisde use effect load before fetchItems")
             try {
                 const res = await fetchItems({ q: debouncedQ, offset })
-                console.log("res", res)
-                if (cancelled) {
-                    return
-                }
-                // console.log("Fetched items:", res.items)
                 setItems((prev) => [...prev, ...res.items])
                 setHasMore(res.hasMore)
             } catch (e: any) {
                 setError(e?.message ?? "Failed to load data")
             } finally {
-                if (!cancelled) {
-                    setLoading(false)
-                }
+                setLoading(false)
             }
         }
         load()
@@ -77,26 +78,6 @@ export default function App() {
         }
     }, [hasMore, loading])
 
-    async function handleAdd() {
-        try {
-            const name = `New Item ${Date.now()}`
-            const body = {
-                name,
-                description: "Created from the UI for demo purposes.",
-                price: Number((Math.random() * 90 + 10).toFixed(2)),
-                image: "https://picsum.photos/seed/ui-created/400/250",
-                imageAlt: "Sample UI-created image",
-                imageTags: ["demo", "ui-created"],
-            }
-
-            await createItem(body)
-            setQ("")
-            setOffset(0)
-        } catch (e: any) {
-            alert(e?.message ?? "Failed to create item")
-        }
-    }
-
     return (
         <div className="container">
             <header className="header">
@@ -106,10 +87,12 @@ export default function App() {
                         type="text"
                         placeholder="Search name, description, price or image..."
                         value={q}
-                        onChange={(e) => setQ(e.target.value)}
+                        onChange={(e) => {
+                            setOffset(0)
+                            setQ(e.target.value)
+                        }}
                         aria-label="Search items"
                     />
-                    <button onClick={handleAdd}>Add</button>
                 </div>
             </header>
 

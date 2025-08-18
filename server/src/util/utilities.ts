@@ -39,7 +39,6 @@ export function matchesQuery(item: Item, q: string): boolean {
     const inText =
         item.name.toLowerCase().includes(query) ||
         item.description.toLowerCase().includes(query) ||
-        item.image.toLowerCase().includes(query) ||
         (item.imageAlt?.toLowerCase().includes(query) ?? false) ||
         (item.imageTags?.some((t) => t.toLowerCase().includes(query)) ?? false)
     // If query looks numeric, allow matching on price as string
