@@ -13,27 +13,15 @@ export default function App() {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const sentinelRef = useRef<HTMLDivElement | null>(null)
-    // const lastQSRef = useRef<{ q: string }>({ q: "" })
-
-    // console.log("offset", offset)
+    const [sort, setSort] = useState<"asc" | "desc" | "undefined">("undefined")
 
     useEffect(() => {
         setItems([])
         setOffset(0)
         setHasMore(true)
-    }, [debouncedQ])
+    }, [debouncedQ, sort])
 
     useEffect(() => {
-        // const changed = lastQSRef.current.q !== debouncedQ
-        // // prevent stale fetch from happening
-        // if (changed) {
-        //     lastQSRef.current = { q: debouncedQ }
-        //     setItems([])
-        //     setOffset(0)
-        //     setHasMore(true)
-        //     return
-        // }
-
         let cancelled = false
         async function load() {
             if (loading || !hasMore) {
@@ -42,7 +30,7 @@ export default function App() {
             setLoading(true)
             setError(null)
             try {
-                const res = await fetchItems({ q: debouncedQ, offset })
+                const res = await fetchItems({ q: debouncedQ, offset, sort })
                 setItems((prev) => [...prev, ...res.items])
                 setHasMore(res.hasMore)
             } catch (e: any) {
@@ -55,9 +43,8 @@ export default function App() {
         return () => {
             cancelled = true
         }
-    }, [debouncedQ, offset, hasMore])
+    }, [debouncedQ, offset, hasMore, sort])
 
-    // Infinite scroll: observe sentinel
     useEffect(() => {
         const el = sentinelRef.current
         if (!el) {
@@ -78,6 +65,17 @@ export default function App() {
         }
     }, [hasMore, loading])
 
+    function handleSortChange() {
+        if (sort === "asc") {
+            setSort("desc")
+        } else if (sort === "desc") {
+            setSort("undefined")
+        } else {
+            setSort("asc")
+        }
+        setOffset(0)
+    }
+
     return (
         <div className="container">
             <header className="header">
@@ -93,6 +91,41 @@ export default function App() {
                         }}
                         aria-label="Search items"
                     />
+
+                    <button
+                        className="btn-sort"
+                        type="button"
+                        onClick={() => handleSortChange()}
+                        data-state="none"
+                        aria-pressed="false"
+                        aria-label="Sort ascending"
+                    >
+                        <span className="label">Sort</span>
+                        {sort === "asc" && (
+                            <svg
+                                viewBox="0 0 24 24"
+                                width="16"
+                                height="16"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
+                                <path d="M7 14l5-5 5 5" />
+                            </svg>
+                        )}
+                        {sort === "desc" && (
+                            <svg
+                                viewBox="0 0 24 24"
+                                width="16"
+                                height="16"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
+                                <path d="M7 10l5 5 5-5" />
+                            </svg>
+                        )}
+                    </button>
                 </div>
             </header>
 

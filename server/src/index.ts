@@ -22,10 +22,20 @@ app.get("/items", (req, res) => {
     )
     const limitRaw = parseInt((req.query.limit as string) || "20", 10)
     const limit = Math.min(Math.max(1, limitRaw), 100)
+    const sort = req.query.sort as "asc" | "desc" | "undefined"
 
     const filtered = q ? items.filter((i) => matchesQuery(i, q)) : items
-    const slice = filtered.slice(offset, offset + limit)
-    const nextOffset = offset + limit < filtered.length ? offset + limit : null
+    const sortedItems = [...filtered].sort((a, b) => {
+        if (sort === "asc") {
+            return a.price - b.price
+        } else if (sort === "desc") {
+            return b.price - a.price
+        }
+        return 0
+    })
+    const slice = sortedItems.slice(offset, offset + limit)
+    const nextOffset =
+        offset + limit < sortedItems.length ? offset + limit : null
 
     res.json({
         items: slice,

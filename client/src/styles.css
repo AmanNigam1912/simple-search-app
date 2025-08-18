@@ -127,3 +127,26 @@ body {
     padding: 2px 8px;
     border-radius: 999px;
 }
+
+.btn-sort {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    background: #fff;
+    cursor: pointer;
+}
+.icons {
+    display: flex;
+    flex-direction: column;
+    line-height: 0;
+}
+
+.btn-sort[data-state="asc"] .down {
+    opacity: 0.25;
+}
+.btn-sort[data-state="desc"] .up {
+    opacity: 0.25;
+}
