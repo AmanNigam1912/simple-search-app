@@ -1,91 +1,79 @@
-import React, { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { fetchItems, createItem } from "./api"
 import type { Item } from "./types"
 import ItemCard from "./components/ItemCard"
-
-function useDebouncedValue<T>(value: T, delay = 400) {
-    const [debounced, setDebounced] = useState(value)
-    useEffect(() => {
-        const id = setTimeout(() => setDebounced(value), delay)
-        return () => clearTimeout(id)
-    }, [value, delay])
-    return debounced
-}
+import { useDebouncedValue } from "./hooks/useDebouncedValue"
 
 export default function App() {
     const [items, setItems] = useState<Item[]>([])
     const [q, setQ] = useState("")
-    const debouncedQ = useDebouncedValue(q, 400)
+    const debouncedQ = useDebouncedValue(q, 500)
     const [offset, setOffset] = useState(0)
     const [hasMore, setHasMore] = useState(true)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const sentinelRef = useRef<HTMLDivElement | null>(null)
+    const [sort, setSort] = useState<"asc" | "desc" | "undefined">("undefined")
 
-    // Reset list when search changes
     useEffect(() => {
         setItems([])
         setOffset(0)
-    }, [debouncedQ])
+        setHasMore(true)
+    }, [debouncedQ, sort])
 
-    // Load a page
     useEffect(() => {
         let cancelled = false
         async function load() {
-            console.log("Loading items...", loading)
-            // if (!hasMore || loading) return
-            if (loading) return
+            if (loading || !hasMore) {
+                return
+            }
             setLoading(true)
             setError(null)
             try {
-                const res = await fetchItems({ q: debouncedQ, offset })
-                console.log("res", res)
-                if (cancelled) return
+                const res = await fetchItems({ q: debouncedQ, offset, sort })
                 setItems((prev) => [...prev, ...res.items])
                 setHasMore(res.hasMore)
             } catch (e: any) {
                 setError(e?.message ?? "Failed to load data")
             } finally {
-                if (!cancelled) setLoading(false)
+                setLoading(false)
             }
         }
         load()
         return () => {
             cancelled = true
         }
-    }, [debouncedQ, offset])
+    }, [debouncedQ, offset, hasMore, sort])
 
-    // Infinite scroll: observe sentinel
     useEffect(() => {
         const el = sentinelRef.current
-        if (!el) return
-        const io = new IntersectionObserver((entries) => {
-            const first = entries[0]
-            if (first.isIntersecting && hasMore && !loading) {
-                setOffset((prev) => prev + 20)
-            }
-        })
+        if (!el) {
+            return
+        }
+        const io = new IntersectionObserver(
+            (entries) => {
+                const first = entries[0]
+                if (first.isIntersecting && hasMore && !loading) {
+                    setOffset((prev) => prev + 20)
+                }
+            },
+            { root: null, rootMargin: "200px", threshold: 0 }
+        )
         io.observe(el)
         return () => {
             io.disconnect()
         }
     }, [hasMore, loading])
 
-    async function handleAddQuick() {
-        try {
-            const name = `New Item ${Date.now()}`
-            const body = {
-                name,
-                description: "Created from the UI for demo purposes.",
-                price: Number((Math.random() * 90 + 10).toFixed(2)),
-                image: "https://picsum.photos/seed/ui-created/400/250",
-            }
-            const created = await createItem(body)
-            // put the new item at the top & reset paging to reflect it
-            setItems((prev) => [created, ...prev])
-        } catch (e: any) {
-            alert(e?.message ?? "Failed to create item")
+    function handleSortChange() {
+        if (sort === "asc") {
+            setSort("desc")
+        } else if (sort === "desc") {
+            setSort("undefined")
+        } else {
+            setSort("asc")
         }
+        setOffset(0)
     }
 
     return (
@@ -97,10 +85,47 @@ export default function App() {
                         type="text"
                         placeholder="Search name, description, price or image..."
                         value={q}
-                        onChange={(e) => setQ(e.target.value)}
+                        onChange={(e) => {
+                            setOffset(0)
+                            setQ(e.target.value)
+                        }}
                         aria-label="Search items"
                     />
-                    <button onClick={handleAddQuick}>+ Quick Add</button>
+
+                    <button
+                        className="btn-sort"
+                        type="button"
+                        onClick={() => handleSortChange()}
+                        data-state="none"
+                        aria-pressed="false"
+                        aria-label="Sort ascending"
+                    >
+                        <span className="label">Sort</span>
+                        {sort === "asc" && (
+                            <svg
+                                viewBox="0 0 24 24"
+                                width="16"
+                                height="16"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
+                                <path d="M7 14l5-5 5 5" />
+                            </svg>
+                        )}
+                        {sort === "desc" && (
+                            <svg
+                                viewBox="0 0 24 24"
+                                width="16"
+                                height="16"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
+                                <path d="M7 10l5 5 5-5" />
+                            </svg>
+                        )}
+                    </button>
                 </div>
             </header>
 
@@ -115,8 +140,8 @@ export default function App() {
             <div ref={sentinelRef} style={{ height: 1 }} />
 
             <footer className="footer">
-                {loading && <span>Loading…</span>}
-                {!hasMore && <span>End of results.</span>}
+                {loading && <div>Loading…</div>}
+                {!hasMore && <div>End of results.</div>}
             </footer>
         </div>
     )
