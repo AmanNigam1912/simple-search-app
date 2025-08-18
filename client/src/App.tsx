@@ -18,24 +18,28 @@ export default function App() {
     useEffect(() => {
         setItems([])
         setOffset(0)
+        setHasMore(true)
     }, [debouncedQ])
 
     // Load a page
     useEffect(() => {
         let cancelled = false
         async function load() {
-            // if (loading || error) {
-            //     console.log("Already loading or error state, skipping fetch")
-            //     return
-            // }
+            console.log("inisde use effect load")
+            if (loading || !hasMore) {
+                console.log("Already loading or error state, skipping fetch")
+                return
+            }
             setLoading(true)
             setError(null)
+            console.log("inisde use effect load before fetchItems")
             try {
                 const res = await fetchItems({ q: debouncedQ, offset })
+                console.log("res", res)
                 if (cancelled) {
                     return
                 }
-                console.log("Fetched items:", res.items)
+                // console.log("Fetched items:", res.items)
                 setItems((prev) => [...prev, ...res.items])
                 setHasMore(res.hasMore)
             } catch (e: any) {
@@ -50,7 +54,7 @@ export default function App() {
         return () => {
             cancelled = true
         }
-    }, [debouncedQ, offset])
+    }, [debouncedQ, offset, hasMore])
 
     // Infinite scroll: observe sentinel
     useEffect(() => {
@@ -73,7 +77,7 @@ export default function App() {
         }
     }, [hasMore, loading])
 
-    async function handleAddQuick() {
+    async function handleAdd() {
         try {
             const name = `New Item ${Date.now()}`
             const body = {
@@ -84,9 +88,10 @@ export default function App() {
                 imageAlt: "Sample UI-created image",
                 imageTags: ["demo", "ui-created"],
             }
-            const created = await createItem(body)
-            // put the new item at the top & reset paging to reflect it
-            setItems((prev) => [created, ...prev])
+
+            await createItem(body)
+            setQ("")
+            setOffset(0)
         } catch (e: any) {
             alert(e?.message ?? "Failed to create item")
         }
@@ -104,7 +109,7 @@ export default function App() {
                         onChange={(e) => setQ(e.target.value)}
                         aria-label="Search items"
                     />
-                    <button onClick={handleAddQuick}>+ Quick Add</button>
+                    <button onClick={handleAdd}>Add</button>
                 </div>
             </header>
 
